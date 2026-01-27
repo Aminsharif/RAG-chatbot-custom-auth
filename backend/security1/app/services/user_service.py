@@ -1,7 +1,7 @@
 ﻿from sqlalchemy.orm import Session
-from backend.security.app.schemas.user import UserCreate, UserUpdate
-from backend.security.app.crud import user
-from backend.security.app.utils.security import get_password_hash
+from backend.security1.app.schemas.user import UserCreate, UserUpdate
+from backend.security1.app.crud import user
+from backend.security1.app.utils.security import get_password_hash
 
 def create_user_service(db: Session, user_create: UserCreate):
     # Do not set hashed_password here, handle this in the CRUD function

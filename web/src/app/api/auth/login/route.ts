@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
     {
       accessToken: (data as { accessToken: string }).accessToken,
       refreshToken: (data as { refreshToken: string }).refreshToken,
-      user:(data as { refreshToken: string }).refreshToken,
     },
     { status: 200 },
   );

@@ -11,7 +11,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }>) {
   const { isLoading } = useAuth();
-
+  console.log("loading................")
   if (isLoading) {
     return (
       <div className="container flex min-h-screen items-center justify-center py-10">

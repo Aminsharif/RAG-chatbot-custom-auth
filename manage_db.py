@@ -3,16 +3,16 @@ import sys
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError
-import backend.security.app.models  # Import models to ensure they are registered correctly
-from backend.security.app.db.base import Base
-from backend.security.app.utils.config import settings
-from backend.security.app.db.session import SessionLocal
-from backend.security.app.crud.role import (
+import backend.security1.app.models  # Import models to ensure they are registered correctly
+from backend.security1.app.db.base import Base
+from backend.security1.app.utils.config import settings
+from backend.security1.app.db.session import SessionLocal
+from backend.security1.app.crud.role import (
     create_role, delete_role, get_all_roles, get_role, get_role_by_name, update_role,
     create_permission, delete_permission, get_all_permissions, get_permission, update_permission,
     add_permission_to_role, remove_permission_from_role
 )
-from backend.security.app.crud.user import create_user, get_user_by_username, assign_role_to_user, RoleCreate, PermissionCreate
+from backend.security1.app.crud.user import create_user, get_user_by_username, assign_role_to_user, RoleCreate, PermissionCreate
 # from app.utils.security import get_password_hash
 import psycopg2
 from psycopg2 import sql
@@ -239,9 +239,9 @@ def restore_database(backup_file: str):
         print(f"Failed to restore database: {e}")
 
 def create_user(db: SessionLocal, username: str, email: str, password: str, full_name: str, role: str = "user"):
-    from backend.security.app.schemas.user import UserCreate
-    from backend.security.app.crud.user import create_user as create_user_crud
-    from backend.security.app.utils.security import get_password_hash
+    from backend.security1.app.schemas.user import UserCreate
+    from backend.security1.app.crud.user import create_user as create_user_crud
+    from backend.security1.app.utils.security import get_password_hash
 
     user_create = UserCreate(
         username=username,
@@ -257,8 +257,8 @@ def create_user(db: SessionLocal, username: str, email: str, password: str, full
         print(f"Failed to create user: {e}")
 
 def create_roles_and_permissions(db: SessionLocal):
-    from backend.security.app.schemas.user import RoleCreate, PermissionCreate
-    from backend.security.app.models.user import Role, Permission
+    from backend.security1.app.schemas.user import RoleCreate, PermissionCreate
+    from backend.security1.app.models.user import Role, Permission
 
     # Create admin role
     admin_role = RoleCreate(name='admin')

@@ -1,10 +1,10 @@
-import { useAuth } from "@/providers/Auth";
+import { useAuthContext } from "@/providers/Auth";
 import React from "react";
 import type { AuthUser } from "@/lib/authTokenStore";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 export function UserInfoSignOut() {
-  const { user, logout, status, isLoading } = useAuth();
+  const { session, isAuthenticated, isLoading } = useAuthContext();
 
   if (isLoading) {
     return (
@@ -18,7 +18,7 @@ export function UserInfoSignOut() {
   if (status=="authenticated") {
     return (
       <SignedInView
-        user={user}
+        user={session?.user || {}}
         signOut={logout}
       />
     );

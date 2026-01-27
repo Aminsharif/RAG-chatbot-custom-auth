@@ -1,5 +1,5 @@
 ﻿from fastapi import FastAPI
-from backend.security.app.api.v1.api import api_router
+from backend.security1.app.api.v1.api import api_router
 
 app = FastAPI(title="Fast API - Roles and Permissions API")
 

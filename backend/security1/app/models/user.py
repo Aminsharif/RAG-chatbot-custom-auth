@@ -1,9 +1,11 @@
 from sqlalchemy import Table, Column, Integer, String, ForeignKey, DateTime, Boolean
 from datetime import datetime
 from sqlalchemy.orm import relationship
-from backend.security.app.db.base import Base
+from backend.security1.app.db.base import Base
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
+import hashlib
+
 
 user_roles = Table('user_roles', Base.metadata,
     Column('user_id', UUID(as_uuid=True), ForeignKey('users.id'), primary_key=True),
@@ -30,12 +32,15 @@ class User(Base):
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True)
-    token = Column(String, unique=True, index=True, nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    token_hash = Column(String(255), unique=True, index=True, nullable=False)  # Store hash
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     expires_at = Column(DateTime, nullable=False)
     is_revoked = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    last_used_at = Column(DateTime, default=datetime.utcnow)
+    device_info = Column(String(500), nullable=True)  # Optional: store device info
+    ip_address = Column(String(45), nullable=True)    # Optional: store IP
     
     user = relationship("User", back_populates="refresh_tokens")
 
@@ -55,3 +60,8 @@ class Permission(Base):
     name = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
     roles = relationship("Role", secondary=role_permissions, back_populates="permissions")
+
+@staticmethod
+def hash_token(token: str) -> str:
+    """Hash refresh token for secure storage"""
+    return hashlib.sha256(token.encode()).hexdigest()

@@ -5,16 +5,16 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
 import { useState, FormEvent } from "react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
-import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
-import { HumanMessage } from "./messages/human";
+import { AssistantMessage, AssistantMessageLoading } from "@/components/thread/messages/ai";
+import { HumanMessage } from "@/components/thread/messages/human";
 import {
   DO_NOT_RENDER_ID_PREFIX,
   ensureToolCallsHaveResponses,
 } from "@/lib/ensure-tool-responses";
-import { LangGraphLogoSVG } from "../icons/langgraph";
-import { TooltipIconButton } from "./tooltip-icon-button";
+import { LangGraphLogoSVG } from "@/components/icons/langgraph";
+import { TooltipIconButton } from "@/components/thread/tooltip-icon-button"
 import {
   ArrowDown,
   LoaderCircle,
@@ -25,22 +25,22 @@ import {
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
-import ThreadHistory from "./history";
+import ThreadHistory from "@/components/thread/history";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { Label } from "../ui/label";
-import { Switch } from "../ui/switch";
-import { GitHubSVG } from "../icons/github";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { GitHubSVG } from "@/components/icons/github";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "../ui/tooltip";
-import { SelectModel } from "../SelectModel";
+} from "@/components/ui/tooltip";
+import { SelectModel } from "@/components/SelectModel";
 import { useThreads } from "@/providers/Thread";
-import { useAuthContext } from "@/providers/Auth";
-import { AppShell } from "../layout/AppShell";
+import { useAuth } from "@/providers/Auth";
+import { AppShell } from "@/components/layout/AppShell";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -101,7 +101,7 @@ function OpenGitHubRepo() {
   );
 }
 
-export function Thread() {
+export default function Thread() {
   const [threadId, setThreadId] = useQueryState("threadId");
   const [chatHistoryOpen, setChatHistoryOpen] = useQueryState(
     "chatHistoryOpen",
@@ -121,7 +121,7 @@ export function Thread() {
 
   const lastError = useRef<string | undefined>(undefined);
   const {selectedModel} = useThreads();
-  const { session, isLoading: authLoading, isAuthenticated } = useAuthContext();
+  const { user, tokens } = useAuth();
 
   useEffect(() => {
     if (!stream.error) {
@@ -192,7 +192,7 @@ export function Thread() {
         }),
         config: {
           configurable: {
-            user_id: session?.user?.id || undefined,
+            user_id: user?.id || undefined,
             query_model: selectedModel,
             response_model: selectedModel,
           },
@@ -238,6 +238,7 @@ export function Thread() {
               : { duration: 0 }
           }
         >
+          
           <div className="relative h-full" style={{ width: 300 }}>
             <ThreadHistory />
           </div>

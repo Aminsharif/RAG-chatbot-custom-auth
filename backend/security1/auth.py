@@ -7,8 +7,8 @@ from jwt import ExpiredSignatureError, InvalidTokenError, PyJWTError
 from langgraph_sdk import Auth
 
 # Use your project's sync DB factory or dependency helper
-from backend.security.app.utils.dependencies import get_db  # generator-style dependency
-from backend.security.app.crud.user import get_user_by_username
+from backend.security1.app.utils.dependencies import get_db  # generator-style dependency
+from backend.security1.app.crud.user import get_user_by_username
 
 JWT_SECRET = os.environ.get("SECRET_KEY", "your-secret-key-here")
 ALGORITHM = os.environ.get("ALGORITHM", "HS256")
@@ -26,6 +26,7 @@ auth = Auth()
 @auth.authenticate
 async def get_current_user(authorization: str | None) -> Auth.types.MinimalUserDict:
     """Authenticate JWT and look up user using the DB without FastAPI Depends."""
+    print(authorization)
     if not authorization:
         raise AUTH_EXCEPTION
 
@@ -41,8 +42,7 @@ async def get_current_user(authorization: str | None) -> Auth.types.MinimalUserD
             options={"verify_aud": False},
             leeway=ACCESS_TOKEN_EXPIRE_MINUTES,
         )
-
-        username = payload.get("sub")
+        username = payload.get("username")
         if not username:
             raise AUTH_EXCEPTION
 
@@ -54,6 +54,8 @@ async def get_current_user(authorization: str | None) -> Auth.types.MinimalUserD
         finally:
             # close the generator to run its cleanup and close the session
             db_gen.close()
+
+      
 
         if not user:
             raise AUTH_EXCEPTION

@@ -18,13 +18,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LangGraphLogoSVG } from "@/components/icons/langgraph";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, User } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { PasswordInput } from "@/components/ui/password-input";
 import { getApiKey } from "@/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
-import { useAuth } from "@/providers/Auth";
-
+import { useAuthContext } from "@/providers/Auth";
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 
 const useTypedStream = useStream<
@@ -78,9 +77,9 @@ const StreamSession = ({
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
   const { getThreads, setThreads, updateThreadMetadata } = useThreads();
-  const {user, tokens, isLoading: authLoading } = useAuth();
-  const jwt = tokens?.accessToken || undefined;
-  const user_id = user?.id || "default"
+  const { session, isLoading: authLoading, isAuthenticated } = useAuthContext();
+  const jwt = session?.accessToken || undefined;
+  const user_id = session?.user?.id || "default"
 
   const streamValue = useTypedStream({
     apiUrl,
@@ -90,7 +89,7 @@ const StreamSession = ({
     defaultHeaders: jwt
       ? {
           Authorization: `Bearer ${jwt}`,
-          "x-supabase-access-token": jwt,
+          // "x-supabase-access-token": jwt,
         }
       : undefined,
     onCustomEvent: (event, options) => {

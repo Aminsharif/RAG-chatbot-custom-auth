@@ -50,6 +50,7 @@ export const isTokenExpired = (token: string, offsetMs = 0) => {
 };
 
 export const getRefreshDelayMs = (token: string, safetyMs = 60_000) => {
+
   const expiresAt = getTokenExpiration(token);
   if (!expiresAt) return null;
   const delay = expiresAt - Date.now() - safetyMs;

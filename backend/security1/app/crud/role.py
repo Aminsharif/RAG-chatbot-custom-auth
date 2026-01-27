@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from backend.security.app.models.user import Role, Permission
-from backend.security.app.schemas.user import RoleCreate, RoleUpdate, PermissionCreate, PermissionUpdate
+from backend.security1.app.models.user import Role, Permission
+from backend.security1.app.schemas.user import RoleCreate, RoleUpdate, PermissionCreate, PermissionUpdate
 from typing import List
 
 def create_role(db: Session, role: RoleCreate) -> Role:

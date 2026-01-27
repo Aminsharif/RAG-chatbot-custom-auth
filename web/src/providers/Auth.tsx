@@ -1,256 +1,132 @@
 "use client";
 
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { SupabaseAuthProvider } from "@/lib/auth/supabase-utils";
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { authTokenStore, AuthTokens, AuthUser } from "@/lib/authTokenStore";
-import { extractUserClaims, getRefreshDelayMs } from "@/utils/jwt";
-import { secureStorage } from "@/utils/secureStorage";
-import { api } from "@/lib/httpClient";
+  AuthProvider as CustomAuthProvider,
+  Session,
+  User,
+  AuthCredentials,
+  AuthError,
+} from "@/lib/auth/types";
+import { getClientSessionSnapshot } from "@/lib/auth/authService";
 
-type AuthStatus = "idle" | "authenticated" | "unauthenticated";
-
-type AuthContextValue = {
-  status: AuthStatus;
-  user: AuthUser | null;
-  tokens: AuthTokens | null;
+interface AuthContextProps {
+  session: Session | null;
+  user: User | null;
   isLoading: boolean;
-  login: (params: {
-    email: string;
-    password: string;
-    remember?: boolean;
-  }) => Promise<void>;
-  logout: () => Promise<void>;
-  refresh: () => Promise<void>;
-};
+  isAuthenticated: boolean;
+  signIn: (credentials: AuthCredentials) => Promise<{
+    user: User | null;
+    session: Session | null;
+    error: AuthError | null;
+  }>;
+  signUp: (credentials: AuthCredentials) => Promise<{
+    user: User | null;
+    session: Session | null;
+    error: AuthError | null;
+  }>;
+  signInWithGoogle: () => Promise<{
+    user: User | null;
+    session: Session | null;
+    error: AuthError | null;
+  }>;
+  signOut: () => Promise<{ error: AuthError | null }>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
+  updateUser: (attributes: Partial<User>) => Promise<{
+    user: User | null;
+    error: AuthError | null;
+  }>;
+}
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+// Create default authentication provider (Supabase in this case)
+const authProvider = new SupabaseAuthProvider({
+  redirectUrl:
+    typeof window !== "undefined" ? window.location.origin : undefined,
+});
 
-const STORAGE_KEY = "auth:tokens";
+// Create auth context
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+export function AuthProvider({
+  children,
+  customAuthProvider,
+  initialSession = null,
+}: {
+  children: React.ReactNode;
+  customAuthProvider?: CustomAuthProvider;
+  initialSession?: Session | null;
+}) {
+  // Use the provided auth provider or default to Supabase
+  const provider = customAuthProvider || authProvider;
 
-const clearRefreshTimeout = () => {
-  if (refreshTimeout) {
-    clearTimeout(refreshTimeout);
-    refreshTimeout = null;
-  }
-};
+  const initialSnapshot = getClientSessionSnapshot() || initialSession;
 
-const scheduleRefresh = (accessToken: string, refresh: () => Promise<void>) => {
-  clearRefreshTimeout();
-  const delay = getRefreshDelayMs(accessToken, 60_000);
-  if (delay == null) return;
-  refreshTimeout = setTimeout(() => {
-    refresh().catch(() => undefined);
-  }, delay);
-};
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [status, setStatus] = useState<AuthStatus>("idle");
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [tokens, setTokens] = useState<AuthTokens | null>(null);
+  const [session, setSession] = useState<Session | null>(initialSnapshot);
+  const [user, setUser] = useState<User | null>(initialSnapshot?.user ?? null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const handleLogout = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await api.post("/auth/logout");
-    } catch {
-      void 0;
-    } finally {
-      secureStorage.remove(STORAGE_KEY);
-      setTokens(null);
-      setUser(null);
-      setStatus("unauthenticated");
-      authTokenStore.setState({ tokens: null, user: null });
-      clearRefreshTimeout();
-      setIsLoading(false);
-      if (typeof window !== "undefined") {
-        document.cookie = "access_token=; Max-Age=0; path=/";
-        window.dispatchEvent(new Event("auth:logout"));
-      }
-    }
-  }, []);
-
-  const handleRefresh = useCallback(async () => {
-    const current = authTokenStore.getState().tokens;
-    if (!current?.refreshToken) return;
-    try {
-      const response = await api.post("/auth/refresh", {
-        refreshToken: current.refreshToken,
-      });
-      const data = response.data as {
-        accessToken: string;
-        refreshToken?: string;
-        user: AuthUser;
-      };
-      const claims = extractUserClaims(data.accessToken);
-      if (!claims) return;
-      const nextTokens: AuthTokens = {
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken ?? current.refreshToken,
-        user: data.user
-      };
-      const nextUser: AuthUser = {
-        id: claims.id,
-        email: claims.email,
-        name: claims.name,
-        roles: claims.roles,
-        raw: claims.raw,
-      };
-      setTokens(nextTokens);
-      setUser(nextUser);
-      setStatus("authenticated");
-      authTokenStore.setState({ tokens: nextTokens, user: nextUser });
-      secureStorage.set(STORAGE_KEY, nextTokens);
-      scheduleRefresh(nextTokens.accessToken, handleRefresh);
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("auth:refresh"));
-      }
-    } catch {
-      await handleLogout();
-    }
-  }, [handleLogout]);
-
-  const handleLogin = useCallback(
-    async (params: { email: string; password: string; remember?: boolean }) => {
-      setIsLoading(true);
+  // Load initial session on mount
+  useEffect(() => {
+    const initializeAuth = async () => {
       try {
-        const response = await api.post("/auth/login", params);
-        const data = response.data as {
-          access_token: string;
-          refresh_token: string;
-          user: AuthUser;
-        };
-        // const claims = extractUserClaims(data.access_token);
-        // if (!claims) {
-        //   throw new Error("Invalid token payload");
-        // }
-        const authValue: AuthTokens = {
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,
-          user: data.user
-        };
+        // Get the current session
+        const currentSession = await provider.getSession();
+        setSession(currentSession);
+        console.log("[AuthProvider] currentSession", currentSession);
 
-        setTokens(authValue);
-        setUser(authValue.user);
-        setStatus("authenticated");
-        authTokenStore.setState({ tokens: authValue, user: authValue.user });
-        if (params.remember ?? false) {
-          secureStorage.set(STORAGE_KEY, authValue);
-        } else {
-          secureStorage.remove(STORAGE_KEY);
+        // If we have a session, get the user
+        if (currentSession?.user) {
+          setUser(currentSession.user);
         }
-        scheduleRefresh(authValue.accessToken, handleRefresh);
-        if (typeof document !== "undefined") {
-          document.cookie = "access_token=1; path=/";
-        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
       } finally {
         setIsLoading(false);
       }
-    },
-    [handleRefresh],
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = secureStorage.get<AuthTokens>(STORAGE_KEY);
-    if (stored?.accessToken) {
-      const claims = extractUserClaims(stored.accessToken);
-      if (claims) {
-        const nextUser: AuthUser = {
-          id: claims.id,
-          email: claims.email,
-          name: claims.name,
-          roles: claims.roles,
-          raw: claims.raw,
-        };
-        setUser(nextUser);
-        setTokens(stored);
-        authTokenStore.setState({ tokens: stored, user: nextUser });
-        setStatus("authenticated");
-        scheduleRefresh(stored.accessToken, handleRefresh);
-      } else {
-        secureStorage.remove(STORAGE_KEY);
-        setStatus("unauthenticated");
-      }
-    } else {
-      setStatus("unauthenticated");
-    }
-    setIsLoading(false);
-  }, [handleRefresh]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const listener = (event: StorageEvent) => {
-      if (event.key !== STORAGE_KEY) return;
-      const next = secureStorage.get<AuthTokens>(STORAGE_KEY);
-      if (!next) {
-        setTokens(null);
-        setUser(null);
-        authTokenStore.setState({ tokens: null, user: null });
-        setStatus("unauthenticated");
-        clearRefreshTimeout();
-        return;
-      }
-      const claims = extractUserClaims(next.accessToken);
-      if (!claims) return;
-      const nextUser: AuthUser = {
-        id: claims.id,
-        email: claims.email,
-        name: claims.name,
-        roles: claims.roles,
-        raw: claims.raw,
-      };
-      setTokens(next);
-      setUser(next.user);
-      authTokenStore.setState({ tokens: next, user: nextUser });
-      setStatus("authenticated");
-      scheduleRefresh(next.accessToken, handleRefresh);
     };
-    window.addEventListener("storage", listener);
-    const unauthorizedListener = () => {
-      setTokens(null);
-      setUser(null);
-      authTokenStore.setState({ tokens: null, user: null });
-      setStatus("unauthenticated");
-      clearRefreshTimeout();
-    };
-    window.addEventListener("auth:unauthorized", unauthorizedListener);
+
+    initializeAuth();
+  }, [provider]);
+
+  // Set up auth state change listener
+  useEffect(() => {
+    const { unsubscribe } = provider.onAuthStateChange(
+      (newSession: Session | null) => {
+        setSession(newSession);
+        setUser(newSession?.user || null);
+      },
+    );
+
     return () => {
-      window.removeEventListener("storage", listener);
-      window.removeEventListener("auth:unauthorized", unauthorizedListener);
+      unsubscribe();
     };
-  }, [handleRefresh]);
+  }, [provider]);
 
-  const value: AuthContextValue = useMemo(
-    () => ({
-      status,
-      user,
-      tokens,
-      isLoading,
-      login: handleLogin,
-      logout: handleLogout,
-      refresh: handleRefresh,
-    }),
-    [status, user, tokens, isLoading, handleLogin, handleLogout, handleRefresh],
-  );
+  const value = {
+    session,
+    user,
+    isLoading,
+    isAuthenticated: !!session?.accessToken,
+    signIn: provider.signIn.bind(provider),
+    signUp: provider.signUp.bind(provider),
+    signInWithGoogle: provider.signInWithGoogle.bind(provider),
+    signOut: provider.signOut.bind(provider),
+    resetPassword: provider.resetPassword.bind(provider),
+    updatePassword: provider.updatePassword.bind(provider),
+    updateUser: provider.updateUser.bind(provider),
+  };
 
-  return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-  );
-};
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used within AuthProvider");
+export function useAuthContext() {
+  const context = useContext(AuthContext);
+
+  if (context === undefined) {
+    throw new Error("useAuthContext must be used within an AuthProvider");
   }
-  return ctx;
-};
+
+  return context;
+}

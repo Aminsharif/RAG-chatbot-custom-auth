@@ -14,8 +14,7 @@ import {
 } from "react";
 import { createClient } from "./client";
 import { ModelOptions } from "@/app/types";
-import { useAuth } from "@/providers/Auth";;
-
+import { useAuthContext } from "@/providers/Auth";;
 interface ThreadContextType {
   getThreads: () => Promise<Thread[]>;
   deleteThread: (threadId: string) => Promise<boolean>;
@@ -80,13 +79,14 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   const [selectedModel, setSelectedModel] = useState<ModelOptions>(
     "groq/llama-3.3-70b-versatile",
   );
-  const { user,tokens } = useAuth();
+  const { session, isLoading: authLoading, isAuthenticated } = useAuthContext();
 
   const getThreads = useCallback(async (): Promise<Thread[]> => {
     if (!finalApiUrl || !finalAssistantId) return [];
-    const jwt = tokens?.accessToken || undefined;
+    const jwt = session?.accessToken || undefined;
+    const user_id = session?.user?.id || "default";
     const client = createClient(finalApiUrl, getApiKey() ?? undefined, jwt);
-    const user_id = user?.id || "default"
+
     const threads = await client.threads.search({
 
       metadata: {
@@ -108,7 +108,7 @@ const updateThreadMetadata = useCallback(async (
       console.error("Missing required parameters");
       return false;
     }
-    const jwt = tokens?.accessToken || undefined;
+    const jwt = session?.accessToken || undefined;
     const client = createClient(finalApiUrl, getApiKey() ?? undefined, jwt);
     await client.threads.update(threadId, {
       metadata: {
@@ -131,11 +131,12 @@ const getThreadId = useCallback(async (): Promise<string | null> => {
     if (!finalApiUrl || !finalAssistantId) {
       return null;
     }
-    const jwt = tokens?.accessToken || undefined;
+    const jwt = session?.accessToken || undefined;
+    const user_id = session?.user?.id || "default";
     const client = createClient(finalApiUrl, getApiKey() ?? undefined, jwt);
     const { thread_id } = await client.threads.create({
       metadata: {
-        user_id: user?.id,
+        user_id:user_id,
       },
     });
     return thread_id;
@@ -148,8 +149,7 @@ const getThreadId = useCallback(async (): Promise<string | null> => {
   // In your Thread context provider (Thread.tsx or wherever your useThreads hook is defined)
   const deleteThread = useCallback(async (threadId: string): Promise<boolean> => {
     if (!finalApiUrl || !threadId) return false;
-    const jwt = tokens?.accessToken || undefined;
-
+    const jwt = session?.accessToken || undefined;
     try {
       const client = createClient(finalApiUrl, getApiKey() ?? undefined,jwt);
       await client.threads.delete(threadId);

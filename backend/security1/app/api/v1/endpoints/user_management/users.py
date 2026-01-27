@@ -1,9 +1,9 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from backend.security.app.schemas.user import UserCreate, UserUpdate, UserResponse, Role
-from backend.security.app.services.user_service import create_user_service, update_user_service
-from backend.security.app.crud import user as user_crud, role as role_crud
-from backend.security.app.utils.dependencies import get_db, permission_required, role_required
+from backend.security1.app.schemas.user import UserCreate, UserUpdate, UserResponse, Role
+from backend.security1.app.services.user_service import create_user_service, update_user_service
+from backend.security1.app.crud import user as user_crud, role as role_crud
+from backend.security1.app.utils.dependencies import get_db, permission_required, role_required
 
 router = APIRouter()
 

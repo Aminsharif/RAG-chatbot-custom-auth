@@ -6,10 +6,10 @@
     "agent": "./backend/agent/graph/graph.py:graph"
   },
   "auth": {
-    "path": "./backend/security/auth.py:auth"
+    "path": "./backend/security1/auth.py:auth"
   },
    "http": {
-    "app": "./backend/security/app/main.py:app"
+    "app": "./backend/security1/app/main.py:app"
   },
   "store": {
     "type": "postgres",

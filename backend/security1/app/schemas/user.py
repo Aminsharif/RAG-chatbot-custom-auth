@@ -196,6 +196,15 @@ class Permission(PermissionBase):
 class UserIDParam(BaseModel):
     user_id: UUID4  # FastAPI will convert string to UUID
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+# Models for logout requests
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None  # Optional for logout from specific session
+
+class LogoutAllRequest(BaseModel):
+    confirm: bool = True
 # For relationships
 class UserWithRoles(BaseModel):
     id: UUID4  
@@ -205,3 +214,10 @@ class UserWithRoles(BaseModel):
     
     class Config:
         from_attributes = True
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    expires_at: int
+    user: UserResponse

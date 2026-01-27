@@ -1,12 +1,12 @@
 from sqlalchemy.orm import Session
-from backend.security.app.models.user import User, Role, Permission
-from backend.security.app.schemas.user import UserCreate, UserUpdate, RoleCreate, PermissionCreate
+from backend.security1.app.models.user import User, Role, Permission
+from backend.security1.app.schemas.user import UserCreate, UserUpdate, RoleCreate, PermissionCreate
 from passlib.context import CryptContext
 from typing import List
 from fastapi import HTTPException
 
 from fastapi.security import OAuth2PasswordBearer
-from backend.security.app.utils.config import settings
+from backend.security1.app.utils.config import settings
 
 import logging
 logger = logging.getLogger(__name__)
