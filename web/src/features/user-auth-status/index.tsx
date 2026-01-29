@@ -1,12 +1,12 @@
 import { useAuthContext } from "@/providers/Auth";
 import React from "react";
-import type { AuthUser } from "@/lib/authTokenStore";
+import type { User } from "@/lib/auth/types";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 export function UserInfoSignOut() {
-  const { session, isAuthenticated, isLoading } = useAuthContext();
+  const { user, signOut, isAuthenticated, isLoading } = useAuthContext();
 
-  if (isLoading) {
+  if (isLoading || (isAuthenticated && !user)) {
     return (
       <div className="mt-2 flex animate-pulse items-center gap-2">
         <div className="h-8 w-8 rounded-full bg-gray-200" />
@@ -15,11 +15,11 @@ export function UserInfoSignOut() {
     );
   }
 
-  if (status=="authenticated") {
+  if (isAuthenticated) {
     return (
       <SignedInView
-        user={session?.user || {}}
-        signOut={logout}
+        user={user}
+        signOut={signOut}
       />
     );
   }
@@ -28,27 +28,38 @@ export function UserInfoSignOut() {
 }
 
 interface SignedInViewProps {
-  user: AuthUser | null;
-  signOut: () => Promise<void>;
+  user: User | null;
+  signOut: () => Promise<{
+    error: import("@/lib/auth/types").AuthError | null;
+  }>;
 }
 
 function SignedInView({ user, signOut }: SignedInViewProps) {
   return (
     <div className="mt-2 flex items-center gap-2">
+      {user?.avatarUrl ? (
+        <img
+          src={user.avatarUrl}
+          alt={user.displayName || user.email || "User"}
+          className="h-8 w-8 rounded-full border object-cover"
+        />
+      ) : (
         <div className="flex h-8 w-8 items-center justify-center rounded-full border bg-gray-200 font-bold text-gray-500">
-          {user?.name?.[0]?.toUpperCase() ||
+          {user?.displayName?.[0]?.toUpperCase() ||
             user?.email?.[0]?.toUpperCase() ||
             "U"}
         </div>
+      )}
       <span
         className="max-w-[240px] truncate text-sm"
-        title={user?.name || user?.email || undefined}
+        title={user?.displayName || user?.email || undefined}
       >
-        {user?.name || user?.email}
+        {user?.username?.toUpperCase() || user?.displayName || user?.email}
         <Badge
           variant="outline"
           className="ml-2 rounded-sm px-2 py-1 text-xs"
         >
+          {" "}
           {user?.email}
         </Badge>
       </span>

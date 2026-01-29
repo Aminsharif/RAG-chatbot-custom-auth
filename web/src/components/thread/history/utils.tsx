@@ -1,7 +1,12 @@
 import { Thread } from "@langchain/langgraph-sdk";
-import { ThreadProps } from "./thread-item";
 import { subDays, isToday, isYesterday, isWithinInterval } from "date-fns";
-
+export interface ThreadProps {
+  id: string;
+  onClick: () => void;
+  onDelete: () => void;
+  label: string;
+  createdAt: Date;
+}
 export function convertThreadActualToThreadProps(
   thread: Thread,
   switchSelectedThread: (thread: Thread) => void,

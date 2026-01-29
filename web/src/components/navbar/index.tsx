@@ -13,9 +13,27 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuthContext } from "@/providers/Auth";
 import { UserInfoSignOut } from "@/features/user-auth-status";
+// import { CreditBalance } from "@/components/credits/credit-balance";
 
 export function Navbar() {
+  const { isAuthenticated, isLoading, user } = useAuthContext();
+  const [hasMounted, setHasMounted] = React.useState(false);
+  const userRole =
+    user?.role ??
+    user?.roles?.[0]?.name ??
+    user?.metadata?.role;
+  const isAdmin = userRole === "admin";
+
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return null;
+  }
+
   return (
     <div className="border-b">
       <div className="flex h-16 items-center px-4 md:px-6">
@@ -24,7 +42,7 @@ export function Navbar() {
           className="mr-6 flex items-center"
         >
           <span className="text-xl font-bold">
-            Agent with Auth
+            Agent with Auth and Payments
           </span>
         </Link>
         <div className="hidden md:flex">
@@ -38,20 +56,23 @@ export function Navbar() {
                   <Link href="/">Chat</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink
-                  className={navigationMenuTriggerStyle()}
-                  asChild
-                >
-                  {/* <Link href="/pricing">Pricing</Link> */}
-                </NavigationMenuLink>
-              </NavigationMenuItem>
+              
+              {isAdmin ? (
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    className={navigationMenuTriggerStyle()}
+                    asChild
+                  >
+                    <Link href="/admin">Admin</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              ) : null}
             </NavigationMenuList>
           </NavigationMenu>
         </div>
         <div className="ml-auto flex items-center space-x-4">
           <div className="hidden items-center space-x-3 md:flex">
-            
+            {/* <CreditBalance /> */}
             <UserInfoSignOut />
           </div>
           <Sheet>
@@ -68,7 +89,7 @@ export function Navbar() {
             <SheetContent side="right">
               <nav className="flex flex-col gap-4">
                 <div className="mb-4">
-                 
+                  {/* <CreditBalance /> */}
                 </div>
                 <Link
                   href="/"
@@ -76,23 +97,33 @@ export function Navbar() {
                 >
                   Chat
                 </Link>
-                {/* <Link
-                  href="/pricing"
-                  className="text-lg font-medium"
-                >
-                  Pricing
-                </Link> */}
+               
+                {isAdmin ? (
+                  <Link
+                    href="/admin"
+                    className="text-lg font-medium"
+                  >
+                    Admin
+                  </Link>
+                ) : null}
 
                 <div className="mt-4 flex flex-col gap-2">
-                  <Button
-                    variant="outline"
-                    asChild
-                  >
-                    <Link href="/signin">Login</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link href="/signup">Sign up</Link>
-                  </Button>
+                  {!isLoading &&
+                    (isAuthenticated ? (
+                      <UserInfoSignOut />
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          asChild
+                        >
+                          <Link href="/signin">Login</Link>
+                        </Button>
+                        <Button asChild>
+                          <Link href="/signup">Sign up</Link>
+                        </Button>
+                      </>
+                    ))}
                 </div>
               </nav>
             </SheetContent>

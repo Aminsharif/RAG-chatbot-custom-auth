@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from backend.security1.app.schemas.user import RoleCreate, RoleUpdate, Role, PermissionCreate, PermissionUpdate, PermissionResponse
+from backend.security1.app.schemas.user import (RoleCreate, RoleUpdate, Role, PermissionCreate, 
+                                                RoleBase,PermissionUpdate, PermissionResponse)
 from backend.security1.app.crud.role import (
     create_role, get_role, update_role, delete_role, get_all_roles,
     create_permission, get_permission, update_permission, delete_permission, get_all_permissions,
@@ -34,7 +35,7 @@ def delete_role_endpoint(role_id: int, db: Session = Depends(get_db)):
     if not delete_role(db, role_id):
         raise HTTPException(status_code=404, detail="Role not found")
 
-@router.get("/roles/", response_model=list[Role], dependencies=[Depends(permission_required("read_all_roles"))])
+@router.get("/roles/", response_model=list[RoleBase], dependencies=[Depends(permission_required("read_all_roles"))])
 def read_roles(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     return get_all_roles(db, skip, limit)
 
@@ -44,21 +45,21 @@ def create_new_permission(permission: PermissionCreate, db: Session = Depends(ge
     return create_permission(db=db, permission=permission)
 
 @router.get("/permissions/{permission_id}", response_model=PermissionResponse, dependencies=[Depends(permission_required("read_permission"))])
-def read_permission(permission_id: int, db: Session = Depends(get_db)):
+def read_permission(permission_id: str, db: Session = Depends(get_db)):
     permission = get_permission(db, permission_id)
     if not permission:
         raise HTTPException(status_code=404, detail="Permission not found")
     return permission
 
 @router.put("/permissions/{permission_id}", response_model=PermissionResponse, dependencies=[Depends(permission_required("update_permission"))])
-def update_permission_endpoint(permission_id: int, permission: PermissionUpdate, db: Session = Depends(get_db)):
+def update_permission_endpoint(permission_id: str, permission: PermissionUpdate, db: Session = Depends(get_db)):
     updated_permission = update_permission(db, permission_id, permission)
     if not updated_permission:
         raise HTTPException(status_code=404, detail="Permission not found")
     return updated_permission
 
 @router.delete("/permissions/{permission_id}", status_code=204, dependencies=[Depends(permission_required("delete_permission"))])
-def delete_permission_endpoint(permission_id: int, db: Session = Depends(get_db)):
+def delete_permission_endpoint(permission_id: str, db: Session = Depends(get_db)):
     if not delete_permission(db, permission_id):
         raise HTTPException(status_code=404, detail="Permission not found")
 
@@ -67,8 +68,8 @@ def read_permissions(skip: int = 0, limit: int = 10, db: Session = Depends(get_d
     return get_all_permissions(db, skip, limit)
 
 # Role-Permission Management
-@router.post("/roles/{role_id}/permissions/{permission_id}", response_model=Role, status_code=200, dependencies=[Depends(permission_required("add_permission_to_role"))])
-def add_permission_to_role_endpoint(role_id: int, permission_id: int, db: Session = Depends(get_db)):
+@router.post("/roles/{role_id}/permissions/{permission_id}", response_model=RoleBase, status_code=200, dependencies=[Depends(permission_required("add_permission_to_role"))])
+def add_permission_to_role_endpoint(role_id: str, permission_id: str, db: Session = Depends(get_db)):
     db_role = get_role(db, role_id)
     if not db_role:
         raise HTTPException(status_code=404, detail="Role not found")
@@ -82,8 +83,8 @@ def add_permission_to_role_endpoint(role_id: int, permission_id: int, db: Sessio
     
     return add_permission_to_role(db=db, role=db_role, permission=db_permission)
 
-@router.delete("/roles/{role_id}/permissions/{permission_id}", response_model=Role, status_code=200, dependencies=[Depends(permission_required("remove_permission_from_role"))])
-def remove_permission_from_role_endpoint(role_id: int, permission_id: int, db: Session = Depends(get_db)):
+@router.delete("/roles/{role_id}/permissions/{permission_id}", response_model=RoleBase, status_code=200, dependencies=[Depends(permission_required("remove_permission_from_role"))])
+def remove_permission_from_role_endpoint(role_id: str, permission_id: str, db: Session = Depends(get_db)):
     db_role = get_role(db, role_id)
     if not db_role:
         raise HTTPException(status_code=404, detail="Role not found")

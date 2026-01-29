@@ -1,6 +1,5 @@
-'use client'
 import { validate } from "uuid";
-import { getApiKey } from "@/lib/api-key";
+
 import { Thread } from "@langchain/langgraph-sdk";
 import { useQueryState } from "nuqs";
 import {
@@ -9,22 +8,22 @@ import {
   ReactNode,
   useCallback,
   useState,
+  useEffect,
   Dispatch,
   SetStateAction,
 } from "react";
 import { createClient } from "./client";
+import { useAuthContext } from "@/providers/Auth";
 import { ModelOptions } from "@/app/types";
-import { useAuthContext } from "@/providers/Auth";;
 interface ThreadContextType {
   getThreads: () => Promise<Thread[]>;
-  deleteThread: (threadId: string) => Promise<boolean>;
   threads: Thread[];
   setThreads: Dispatch<SetStateAction<Thread[]>>;
   threadsLoading: boolean;
   setThreadsLoading: Dispatch<SetStateAction<boolean>>;
   selectedModel: ModelOptions;
   setSelectedModel: Dispatch<SetStateAction<ModelOptions>>;
-  getThreadId:() => Promise<string | null>
+  deleteThread: (threadId: string) => Promise<boolean>;
   updateThreadMetadata: (threadId:string, userId:string, metadata?: Record<string, any>) => Promise<boolean>;
 }
 
@@ -32,14 +31,14 @@ const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
 
 // function getThreadSearchMetadata(
 //   assistantId: string,
-//   user_id: string,
-// ): { graph_id: string, user_id: string } | { assistant_id: string, user_id: string } {
+// ): { graph_id: string } | { assistant_id: string } {
 //   if (validate(assistantId)) {
-//     return { assistant_id: assistantId, user_id: user_id};
+//     return { assistant_id: assistantId };
 //   } else {
-//     return { graph_id: assistantId, user_id: user_id };
+//     return { graph_id: assistantId };
 //   }
 // }
+
 
 function getThreadSearchMetadata(
   assistantId: string,
@@ -57,7 +56,7 @@ function getThreadSearchMetadata(
 }
 
 export function ThreadProvider({ children }: { children: ReactNode }) {
-    // Get environment variables
+  // Get environment variables
   const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
   const envAssistantId: string | undefined =
     process.env.NEXT_PUBLIC_ASSISTANT_ID;
@@ -73,30 +72,42 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   // Determine final values to use, prioritizing URL params then env vars
   const finalApiUrl = apiUrl || envApiUrl;
   const finalAssistantId = assistantId || envAssistantId;
-
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [threadsLoading, setThreadsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelOptions>(
+const [selectedModel, setSelectedModel] = useState<ModelOptions>(
     "groq/llama-3.3-70b-versatile",
   );
-  const { session, isLoading: authLoading, isAuthenticated } = useAuthContext();
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [threadsLoading, setThreadsLoading] = useState(false);
+  const { session, isLoading: authLoading, isAuthenticated, } = useAuthContext();
 
   const getThreads = useCallback(async (): Promise<Thread[]> => {
-    if (!finalApiUrl || !finalAssistantId) return [];
+    if (!finalApiUrl || !finalAssistantId) {
+      console.log(
+        "[ThreadProvider] getThreads: missing apiUrl or assistantId",
+        { finalApiUrl, finalAssistantId },
+      );
+      return [];
+    }
     const jwt = session?.accessToken || undefined;
-    const user_id = session?.user?.id || "default";
-    const client = createClient(finalApiUrl, getApiKey() ?? undefined, jwt);
+    console.log(
+      "[ThreadProvider] getThreads: apiUrl=",
+      finalApiUrl,
+      "assistantId=",
+      finalAssistantId,
+      "jwt=",
+      jwt,
+    );
+    const client = createClient(finalApiUrl, jwt);
+    console.log("[ThreadProvider] Created client", client);
 
     const threads = await client.threads.search({
-
       metadata: {
-        ...getThreadSearchMetadata(finalAssistantId, user_id),
+        ...getThreadSearchMetadata(finalAssistantId, session?.user?.id || ""),
       },
       limit: 100,
     });
-
+    console.log("[ThreadProvider] threads result", threads);
     return threads;
-  }, [finalApiUrl, finalAssistantId]);
+  }, [finalApiUrl, finalAssistantId, session]);
 
 const updateThreadMetadata = useCallback(async (
   threadId: string,
@@ -109,7 +120,7 @@ const updateThreadMetadata = useCallback(async (
       return false;
     }
     const jwt = session?.accessToken || undefined;
-    const client = createClient(finalApiUrl, getApiKey() ?? undefined, jwt);
+    const client = createClient(finalApiUrl, jwt);
     await client.threads.update(threadId, {
       metadata: {
         user_id: userId,
@@ -126,32 +137,12 @@ const updateThreadMetadata = useCallback(async (
   }
 }, [finalApiUrl, finalAssistantId]);
 
-const getThreadId = useCallback(async (): Promise<string | null> => {
-  try {
-    if (!finalApiUrl || !finalAssistantId) {
-      return null;
-    }
-    const jwt = session?.accessToken || undefined;
-    const user_id = session?.user?.id || "default";
-    const client = createClient(finalApiUrl, getApiKey() ?? undefined, jwt);
-    const { thread_id } = await client.threads.create({
-      metadata: {
-        user_id:user_id,
-      },
-    });
-    return thread_id;
-  } catch (error) {
-    console.error("Failed to create thread:", error);
-    return null;
-  }
-}, [finalApiUrl, finalAssistantId]);
-
-  // In your Thread context provider (Thread.tsx or wherever your useThreads hook is defined)
-  const deleteThread = useCallback(async (threadId: string): Promise<boolean> => {
+const deleteThread = useCallback(async (threadId: string): Promise<boolean> => {
     if (!finalApiUrl || !threadId) return false;
     const jwt = session?.accessToken || undefined;
+
     try {
-      const client = createClient(finalApiUrl, getApiKey() ?? undefined,jwt);
+      const client = createClient(finalApiUrl,jwt);
       await client.threads.delete(threadId);
 
       // Update local state immediately - remove the deleted thread
@@ -164,6 +155,28 @@ const getThreadId = useCallback(async (): Promise<string | null> => {
     }
   }, [finalApiUrl]);
 
+  useEffect(() => {
+    if (authLoading) {
+      console.log("[ThreadProvider] Skipping fetch: authLoading");
+      return;
+    }
+    if (!isAuthenticated) {
+      console.log("[ThreadProvider] Skipping fetch: not authenticated");
+      return;
+    }
+    setThreadsLoading(true);
+    getThreads()
+      .then((result) => {
+        setThreads(result);
+      })
+      .catch((error) => {
+        console.error("[ThreadProvider] getThreads error", error);
+      })
+      .finally(() => {
+        setThreadsLoading(false);
+      });
+  }, [authLoading, isAuthenticated, getThreads]);
+
   const value = {
     getThreads,
     threads,
@@ -172,9 +185,8 @@ const getThreadId = useCallback(async (): Promise<string | null> => {
     setThreadsLoading,
     selectedModel,
     setSelectedModel,
+    updateThreadMetadata,
     deleteThread,
-    getThreadId,
-    updateThreadMetadata
   };
 
   return (

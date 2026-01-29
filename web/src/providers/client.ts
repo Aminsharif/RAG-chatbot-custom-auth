@@ -1,15 +1,6 @@
-// import { Client } from "@langchain/langgraph-sdk";
-
-// export function createClient(apiUrl: string, apiKey: string | undefined) {
-//   return new Client({
-//     apiKey,
-//     apiUrl,
-//   });
-// }
-
 import { Client } from "@langchain/langgraph-sdk";
 
-export function createClient(apiUrl: string, apiKey?: string | undefined, jwt?: string) {
+export function createClient(apiUrl: string, jwt?: string) {
   console.log(
     "[createClient] apiUrl=",
     apiUrl,

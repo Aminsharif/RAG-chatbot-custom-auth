@@ -118,6 +118,7 @@ class RoleResponse(BaseModel):
 class PermissionResponse(BaseModel):
     id: UUID4  
     name: str
+    description: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -161,6 +162,7 @@ class TokenData(BaseModel):
 
 # Role schemas
 class RoleBase(BaseModel):
+    id: UUID4
     name: str
 
 class RoleCreate(RoleBase):
@@ -221,3 +223,11 @@ class TokenResponse(BaseModel):
     token_type: str
     expires_at: int
     user: UserResponse
+
+class PermissionBase(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    
+    class Config:
+        from_attributes = True

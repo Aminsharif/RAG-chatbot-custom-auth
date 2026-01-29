@@ -77,7 +77,7 @@ const StreamSession = ({
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
   const { getThreads, setThreads, updateThreadMetadata } = useThreads();
-  const { session, isLoading: authLoading, isAuthenticated } = useAuthContext();
+  const { session, isLoading: authLoading, } = useAuthContext();
   const jwt = session?.accessToken || undefined;
   const user_id = session?.user?.id || "default"
 
@@ -184,8 +184,8 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   // Determine final values to use, prioritizing URL params then env vars
-  const finalApiUrl = apiUrl || envApiUrl;
-  const finalAssistantId = assistantId || envAssistantId;
+  const finalApiUrl = envApiUrl;
+  const finalAssistantId = envAssistantId;
 
   // If we're missing any required values, show the form
   if (!finalApiUrl || !finalAssistantId) {
