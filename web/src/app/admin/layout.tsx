@@ -9,7 +9,12 @@ export default function AdminLayout({
     <div className="flex min-h-screen bg-background">
       <aside className="w-64 border-r bg-muted/40">
         <div className="flex h-16 items-center px-6 text-lg font-semibold">
-          Admin
+          <Link
+            href="/"
+            className="rounded-md px-3 py-2 text-sm font-medium hover:bg-muted"
+          >
+            Chat 
+          </Link>
         </div>
         <nav className="flex flex-col gap-1 px-4 pb-6">
           <Link

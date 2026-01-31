@@ -37,3 +37,5 @@ asyncpg
 pydantic[email]
 python-multipart
 bcrypt==4.0.1
+faiss-cpu
+chorama

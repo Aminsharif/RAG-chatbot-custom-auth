@@ -63,7 +63,6 @@ def login_for_access_token(
         # ip_address=request.client.host if request.client else None
     )
     
-    print("...............", res.is_revoked,'........................*************'*8)
     logger.info(f"User {user.email} logged in successfully")
     
     access_expires_at = datetime.utcnow() + access_token_expires

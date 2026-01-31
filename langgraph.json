@@ -2,8 +2,8 @@
   "$schema": "https://langgra.ph/schema.json",
   "dependencies": ["."],
   "graphs": {
-    "indexer": "./backend/agent/graph/graph_index.py:graph",
-    "agent": "./backend/agent/graph/graph.py:graph"
+    "indexer": "./backend/agent1/graph/graph_index.py:graph",
+    "agent": "./backend/agent1/graph/graph.py:graph"
   },
   "auth": {
     "path": "./backend/security1/auth.py:auth"

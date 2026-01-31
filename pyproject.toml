@@ -49,6 +49,8 @@ dependencies = [
   "pydantic[email]",
   "python-multipart",
   "bcrypt",
+  "faiss-cpu",
+  "chorama",
 ]
 
 [dependency-groups]
