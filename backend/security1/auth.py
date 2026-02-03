@@ -20,6 +20,14 @@ AUTH_EXCEPTION = Auth.exceptions.HTTPException(
     headers={"WWW-Authenticate": "Bearer"},
 )
 
+AUTH_EXPIRED_EXCEPTION = Auth.exceptions.HTTPException(
+    status_code=401,
+    detail="Access token expired",
+    headers={
+        "WWW-Authenticate": 'Bearer error="invalid_token", error_description="The access token expired"'
+    },
+)
+
 auth = Auth()
 
 
@@ -72,7 +80,7 @@ async def get_current_user(authorization: str | None) -> Auth.types.MinimalUserD
 
     except ExpiredSignatureError as e:
         print("Token expired:", e)
-        raise AUTH_EXCEPTION from e
+        raise AUTH_EXPIRED_EXCEPTION from e
     except (InvalidTokenError, PyJWTError, ValueError) as e:
         print("Invalid token:", e)
         raise AUTH_EXCEPTION from e

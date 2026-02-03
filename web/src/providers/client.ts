@@ -1,6 +1,10 @@
 import { Client } from "@langchain/langgraph-sdk";
 
-export function createClient(apiUrl: string, jwt?: string) {
+export function createClient(
+  apiUrl: string,
+  jwt?: string,
+  fetcher?: typeof fetch,
+) {
   console.log(
     "[createClient] apiUrl=",
     apiUrl,
@@ -16,6 +20,7 @@ export function createClient(apiUrl: string, jwt?: string) {
   // Configure the client with proper headers
   const config: any = {
     apiUrl: clientApiUrl,
+    ...(fetcher ? { fetch: fetcher } : {}),
   };
 
   // Add authorization headers if JWT is present

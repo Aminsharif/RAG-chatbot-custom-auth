@@ -15,6 +15,7 @@ import {
 import { createClient } from "./client";
 import { useAuthContext } from "@/providers/Auth";
 import { ModelOptions } from "@/app/types";
+import { authenticatedFetch } from "@/lib/auth/authService";
 interface ThreadContextType {
   getThreads: () => Promise<Thread[]>;
   threads: Thread[];
@@ -96,7 +97,7 @@ const [selectedModel, setSelectedModel] = useState<ModelOptions>(
       "jwt=",
       jwt,
     );
-    const client = createClient(finalApiUrl, jwt);
+    const client = createClient(finalApiUrl, jwt, authenticatedFetch);
     console.log("[ThreadProvider] Created client", client);
 
     const threads = await client.threads.search({
@@ -120,7 +121,7 @@ const updateThreadMetadata = useCallback(async (
       return false;
     }
     const jwt = session?.accessToken || undefined;
-    const client = createClient(finalApiUrl, jwt);
+    const client = createClient(finalApiUrl, jwt, authenticatedFetch);
     await client.threads.update(threadId, {
       metadata: {
         user_id: userId,
@@ -142,7 +143,7 @@ const deleteThread = useCallback(async (threadId: string): Promise<boolean> => {
     const jwt = session?.accessToken || undefined;
 
     try {
-      const client = createClient(finalApiUrl,jwt);
+      const client = createClient(finalApiUrl, jwt, authenticatedFetch);
       await client.threads.delete(threadId);
 
       // Update local state immediately - remove the deleted thread

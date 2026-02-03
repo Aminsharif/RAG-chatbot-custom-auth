@@ -24,6 +24,7 @@ import { getApiKey } from "@/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
 import { useAuthContext } from "@/providers/Auth";
+import { authenticatedFetch } from "@/lib/auth/authService";
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 
 const useTypedStream = useStream<
@@ -49,7 +50,7 @@ async function checkGraphStatus(
   apiKey: string | null,
 ): Promise<boolean> {
   try {
-    const res = await fetch(`${apiUrl}/info`, {
+    const res = await authenticatedFetch(`${apiUrl}/info`, {
       ...(apiKey && {
         headers: {
           "X-Api-Key": apiKey,
